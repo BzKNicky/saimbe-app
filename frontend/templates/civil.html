@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>SAIMBE - Dashboard Civil</title>
+        
+        <!-- Estilos generales y Favicon -->
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/civil.css') }}">
+        <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/Favicon.jpeg') }}">
+
+        <!-- Font Awesome para Iconos -->
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+        <!-- Leaflet CSS -->
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+        <!-- SweetAlert2 CSS & JS CDN -->
+        <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+        <!-- Corrección para que SweetAlert2 siempre esté al frente del modal -->
+        <style>
+            .swal2-container {
+                z-index: 99999 !important;
+            }
+        </style>
+    </head>
+
+    <body>
+
+        <!-- Encabezado principal -->
+        <header>
+            <div class="logo-container">
+                <a href="{{ url_for('civil')}}" title="Ir al inicio">
+                    <img src="{{ url_for('static', filename='images/Logo_SAIMBE.png') }}" alt="Logo SAIMBE">
+                </a>
+                <div>
+                    <h1>SAIMBE</h1>
+                    <p>Cada Segundo Cuenta</p>
+                </div>
+            </div>
+
+            <!-- Navegación y acciones de usuario -->
+            <nav>
+                <!-- Botón de Menú Hamburguesa para Móvil -->
+                <button id="menu-toggle" class="menu-toggle" aria-label="Abrir menú" title="Menú de navegación">☰</button>
+                <button id="theme-toggle" aria-label="Cambiar tema de color" title="Modo Claro/Oscuro">🌙</button>
+                <span class="user-info">Usuario: <strong>{{ session.get('nombre', 'Civil') }}</strong></span>
+                <a href="{{ url_for('logout') if 'logout' in endpoints else '#' }}" class="btn btn-danger">Cerrar sesión</a>
+            </nav>
+        </header>
+
+        <!-- Contenido del Dashboard -->
+        <main class="dashboard-container">
+
+            <!-- Menú lateral / Menú desplegable en móvil -->
+            <aside class="sidebar" id="sidebar">
+                <ul>
+                    <li class="active"><a href="{{ url_for('civil')}}" onclick="cerrarMenuMovil()">Inicio</a></li>
+                    <li><a href="#" id="btn-reportar-emergencia" onclick="cerrarMenuMovil()">Reportar Emergencia</a></li>
+                    <li><a href="#sec-mapa" id="link-mapa" onclick="cerrarMenuMovil()">Mapa</a></li>
+                    <li><a href="#mis-reportes" onclick="cerrarMenuMovil()">Mis Reportes</a></li>
+                </ul>
+                <ul class="sidebar-bottom">
+                    <li><a href="#sec-configuracion" id="link-config" onclick="abrirModalConfiguracion(); cerrarMenuMovil(); return false;">⚙️ Configuración</a></li>
+                </ul>
+            </aside>
+
+            <!-- Área de contenido dinámico -->
+            <div class="dashboard-content">
+
+                <!-- Mensajes Flash de Retroalimentación -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                  {% if messages %}
+                    {% for category, message in messages %}
+                      <div class="alert alert-{{ category }}" style="margin-bottom: 15px; padding: 10px 15px; border-radius: 5px; background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb;">
+                        {{ message }}
+                      </div>
+                    {% endfor %}
+                  {% endif %}
+                {% endwith %}
+
+                <!-- Panel de control (Tarjetas informativas) -->
+                <section class="main-content">
+                    <h2>Bienvenido, {{ session.get('nombre', 'Usuario') }}</h2>
+                    <p>Desde aquí puedes reportar emergencias y consultar el estado de tus solicitudes en tiempo real.</p>
+
+                    <div class="cards-grid">
+                        <!-- Tarjeta 1: Reportar -->
+                        <div class="card" id="btn-reportar-emergencia-card" style="cursor: pointer;">
+                            <div class="card-content">
+                                <h3>Reportar emergencia</h3>
+                                <p>Genera una alerta inmediata para solicitar ayuda de los cuerpos de socorro.</p>
+                            </div>
+                            <span class="card-button">Reportar &rarr;</span>
+                        </div>
+
+                        <!-- Tarjeta 2: Reportes -->
+                        <a href="#mis-reportes" class="card">
+                            <div class="card-content">
+                                <h3>Mis reportes</h3>
+                                <p>Consulta el historial y seguimiento de las emergencias que has reportado.</p>
+                            </div>
+                            <span class="card-button">Ver reportes &rarr;</span>
+                        </a>
+
+                        <!-- Tarjeta 3: Mapa -->
+                        <a href="#sec-mapa" class="card">
+                            <div class="card-content">
+                                <h3>Mapa</h3>
+                                <p>Consulta las ubicaciones de los centros de emergencia.</p>
+                            </div>
+                            <span class="card-button">Ver mapa &rarr;</span>
+                        </a>
+                    </div>
+                </section>
+
+                <!-- Sección: Mapa de Centros de Atención -->
+                <section id="sec-mapa" class="map-section">
+                    <div class="section-header">
+                        <div>
+                            <h3>Centros de Emergencia y Socorro</h3>
+                            <p>Encuentra el centro asistencial o de socorro más cercano en Funza, Mosquera o Madrid.</p>
+                        </div>
+                    </div>
+
+                    <!-- Estructura Dividida: Filtro Lateral + Mapa -->
+                    <div class="map-layout">
+                        <!-- Panel Lateral de Selección y Filtrado -->
+                        <div class="map-sidebar">
+                            <div class="filter-group">
+                                <label for="tipoCentroSelect"><i class="fas fa-filter"></i> Filtrar por Categoría:</label>
+                                <select id="tipoCentroSelect" class="form-control" onchange="filtrarCentros()">
+                                    <option value="todos">Todos los Centros</option>
+                                    <option value="bomberos">🚒 Bomberos</option>
+                                    <option value="cruz_roja">🚑 Cruz Roja</option>
+                                    <option value="defensa_civil">🧡 Defensa Civil</option>
+                                    <option value="policia">👮 Policía Nacional</option>
+                                    <option value="fuerzas_militares">🛡️ Fuerzas Militares (FAC / Ejército)</option>
+                                    <option value="crue_usar">🏥 CRUE / USAR / Salud</option>
+                                    <option value="hidrocarburos">⚠️ Resp. Hidrocarburos / HazMat</option>
+                                </select>
+                            </div>
+
+                            <div class="closest-btn-container">
+                                <button type="button" class="btn btn-primary" style="width: 100%; text-align: center;" onclick="encontrarMasCercanoFiltrado()">
+                                    📍 Encontrar más cercano
+                                </button>
+                            </div>
+
+                            <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 5px 0;">
+
+                            <!-- Tarjeta con el Resultado del Centro Más Cercano Filtrado -->
+                            <div id="resultadoCercano" class="result-card" style="display: none;">
+                                <h4 style="margin: 0 0 5px 0; font-size: 0.95rem; color: var(--primary-color);">Centro Más Cercano:</h4>
+                                <p id="cercanoNombre" style="font-weight: bold; margin: 0 0 4px 0; font-size: 0.9rem;">-</p>
+                                <span id="cercanoTipo" class="badge badge-info" style="font-size: 0.7rem;">-</span>
+                                <p id="cercanoDistancia" style="margin: 8px 0 0 0; font-size: 0.85rem; color: var(--accent-color); font-weight: 600;">-</p>
+                                <button id="btnComoLlegar" type="button" class="btn btn-outline" style="margin-top: 8px; width: 100%; font-size: 0.8rem; padding: 5px;">
+                                    🗺️ Cómo llegar (Google Maps)
+                                </button>
+                            </div>
+
+                            <!-- Lista de Centros Visibles -->
+                            <div class="centros-list-container">
+                                <h5 style="margin: 0 0 8px 0; font-size: 0.85rem; color: var(--text-muted);">Sedes Disponibles (<span id="cantCentros">0</span>)</h5>
+                                <ul id="listaCentros" class="lista-centros"></ul>
+                            </div>
+                        </div>
+
+                        <!-- Div Contenedor del Mapa Leaflet -->
+                        <div class="map-wrapper">
+                            <div id="map" style="width: 100%; height: 500px; border-radius: 10px;"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Sección: Mis Emergencias Recientes -->
+                <section id="mis-reportes" class="recent-emergencies">
+                    <div class="section-header">
+                        <div>
+                            <h3>Mis Emergencias Recientes</h3>
+                            <p>Visualiza el estado de las emergencias que has reportado.</p>
+                        </div>
+                    </div>
+
+                    <div class="table-card">
+                        <table class="custom-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Tipo</th>
+                                    <th>Ubicación</th>
+                                    <th>Fecha y Hora</th>
+                                    <th>Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for e in emergencias %}
+                                <tr>
+                                    <td class="fw-bold">#{{ e.id }}</td>
+                                    <td><span class="emergency-type">{{ e.tipo }}</span></td>
+                                    <td>{{ e.ubicacion }}</td>
+                                    <td>{{ e.fecha }}</td>
+                                    <td>
+                                        {% set estado_clean = e.estado | lower | replace('_', ' ') %}
+                                        {% if 'pendiente' in estado_clean %}
+                                            <span class="badge badge-warning">Pendiente</span>
+                                        {% elif 'proceso' in estado_clean or 'curso' in estado_clean %}
+                                            <span class="badge badge-info">En proceso</span>
+                                        {% elif 'finalizad' in estado_clean or 'resuelt' in estado_clean %}
+                                            <span class="badge badge-success">Finalizada</span>
+                                        {% else %}
+                                            <span class="badge">{{ e.estado }}</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="5" style="text-align: center;">No has registrado emergencias aún.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+            </div>
+        </main>
+
+        <footer class="dashboard-footer">
+            <p>SAIMBE &copy; 2026 - Corporación Universitaria Minuto de Dios UNIMINUTO - Madrid, Cundinamarca</p>
+        </footer>
+
+        <!-- VENTANA EMERGENTE (MODAL) DE CONFIGURACIÓN DE USUARIO CIVIL -->
+        <div id="modal-configuracion" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.6); z-index: 2000; justify-content: center; align-items: center;">
+            <div style="background-color: var(--card-bg, #ffffff); color: var(--text-main, #333); padding: 25px; border-radius: 10px; width: 90%; max-width: 500px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); border: 1px solid var(--border-color, #ccc); position: relative; max-height: 90vh; overflow-y: auto;">
+                
+                <!-- Botón de Cierre (X) -->
+                <button onclick="cerrarModalConfiguracion()" style="position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--text-main);">✕</button>
+                
+                <h3 style="margin-top: 0; color: var(--accent-color, #2563eb); border-bottom: 2px solid var(--border-color); padding-bottom: 8px;">⚙️ Perfil y Configuración</h3>
+                
+                <form action="{{ url_for('guardar_configuracion') }}" method="POST" style="margin-top: 15px;">
+                    <div class="form-group" style="margin-bottom: 12px;">
+                        <label style="display: block; font-weight: bold; margin-bottom: 6px; font-size: 0.9rem;">Nombre Registrado</label>
+                        <input type="text" value="{{ session.get('nombre', 'Usuario') }}" readonly style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-main, #f5f8fa); color: var(--text-main);">
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 12px;">
+                        <label for="telefono" style="display: block; font-weight: bold; margin-bottom: 6px; font-size: 0.9rem;">Teléfono de Contacto para Emergencias</label>
+                        <input type="tel" id="telefono" name="telefono" placeholder="Ej. 3101234567" value="{{ usuario['telefono'] if usuario and usuario['telefono'] else '' }}" style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--card-bg); color: var(--text-main);">
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 15px;">
+                        <label for="notificaciones" style="display: block; font-weight: bold; margin-bottom: 6px; font-size: 0.9rem;">Notificaciones SMS / WhatsApp</label>
+                        <select id="notificaciones" name="notificaciones" style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--card-bg); color: var(--text-main);">
+                            <option value="activado" {% if usuario and usuario['notificaciones'] == 'activado' %}selected{% endif %}>Activadas</option>
+                            <option value="desactivado" {% if usuario and usuario['notificaciones'] == 'desactivado' %}selected{% endif %}>Desactivadas</option>
+                        </select>
+                    </div>
+
+                    <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 15px 0;">
+                    <h4 style="margin: 0 0 12px 0; font-size: 0.95rem; color: var(--primary-color);">🔒 Cambio de Contraseña (Opcional)</h4>
+
+                    <!-- Contraseña Actual -->
+                    <div class="form-group" style="margin-bottom: 12px;">
+                        <label style="display: block; font-weight: bold; margin-bottom: 6px; font-size: 0.85rem;">Contraseña Actual</label>
+                        <div style="position: relative;">
+                            <input type="password" id="password_actual" name="password_actual" placeholder="Escribe tu contraseña actual" style="width: 100%; padding: 9px 35px 9px 10px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--card-bg); color: var(--text-main);">
+                            <button type="button" onclick="togglePassword('password_actual', this)" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--text-muted);" title="Ver contraseña">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Nueva Contraseña -->
+                    <div class="form-group" style="margin-bottom: 12px;">
+                        <label style="display: block; font-weight: bold; margin-bottom: 6px; font-size: 0.85rem;">Nueva Contraseña</label>
+                        <div style="position: relative;">
+                            <input type="password" id="nuevo_password" name="nuevo_password" placeholder="Mínimo 6 caracteres" style="width: 100%; padding: 9px 35px 9px 10px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--card-bg); color: var(--text-main);">
+                            <button type="button" onclick="togglePassword('nuevo_password', this)" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--text-muted);" title="Ver contraseña">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Confirmar Nueva Contraseña -->
+                    <div class="form-group" style="margin-bottom: 20px;">
+                        <label style="display: block; font-weight: bold; margin-bottom: 6px; font-size: 0.85rem;">Confirmar Nueva Contraseña</label>
+                        <div style="position: relative;">
+                            <input type="password" id="confirm_password" name="confirm_password" placeholder="Repite la nueva contraseña" style="width: 100%; padding: 9px 35px 9px 10px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--card-bg); color: var(--text-main);">
+                            <button type="button" onclick="togglePassword('confirm_password', this)" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--text-muted);" title="Ver contraseña">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div style="text-align: right; display: flex; justify-content: flex-end; gap: 8px;">
+                        <button type="button" onclick="cerrarModalConfiguracion()" class="btn btn-sm btn-outline" style="padding: 6px 14px;">Cancelar</button>
+                        <button type="submit" class="btn btn-sm btn-primary" style="padding: 6px 16px;">💾 Guardar Cambios</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Modal para Reportar Nueva Emergencia -->
+        <div id="modal-emergencia" class="modal-overlay" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>🚨 Reportar Nueva Emergencia</h3>
+                    <button class="close-modal">&times;</button>
+                </div>
+                <!-- FORMULARIO ACTUALIZADO CON CAMPOS LABORALES / SST -->
+                <form id="form-emergencia" action="{{ url_for('registrar_emergencia') }}" method="POST" class="modal-body">
+                    
+                    <!-- CAMPOS OCULTOS GPS -->
+                    <input type="hidden" id="emergencia_lat" name="latitud">
+                    <input type="hidden" id="emergencia_lng" name="longitud">
+
+                    <div class="form-group">
+                        <label for="tipo">Tipo de Emergencia</label>
+                        <select id="tipo" name="tipo" required>
+                            <option value="Incendio">Incendio</option>
+                            <option value="Accidente de Tránsito">Accidente de Tránsito</option>
+                            <option value="Emergencia Médica">Emergencia Médica</option>
+                            <option value="Robo / Seguridad">Robo / Seguridad</option>
+                            <option value="Inundación / Desastre">Inundación / Desastre</option>
+                            <option value="Derrame / Incidente con Hidrocarburos">Derrame / Incidente con Hidrocarburos</option>
+                            <option value="Otro">Otro</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group" id="grupo-otro-tipo" style="display: none;">
+                        <label for="otro_tipo">Especificar tipo de emergencia</label>
+                        <input type="text" id="otro_tipo" name="otro_tipo" placeholder="Ej. Fuga de gas, caída de árbol...">
+                    </div>
+
+                    <!-- NUEVO BLOQUE: VALIDACIÓN DE ACCIDENTE LABORAL / ARL -->
+                    <div id="grupo-laboral" style="display: none; background: rgba(37, 99, 235, 0.05); padding: 12px; border-radius: 8px; border: 1px dashed var(--primary-color); margin-bottom: 12px;">
+                        <div class="form-group" style="margin-bottom: 10px;">
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 600;">
+                                <input type="checkbox" id="es_laboral" name="es_laboral" value="si" style="width: 18px; height: 18px;">
+                                <span>⚠️ ¿Es un Accidente Laboral (Trabajo / Empresa)?</span>
+                            </label>
+                        </div>
+
+                        <div id="detalles-laborales" style="display: none; display: grid; gap: 10px;">
+                            <div class="form-group" style="margin: 0;">
+                                <label for="empresa_laboral" style="font-size: 0.85rem;">Nombre de la Empresa / Razón Social</label>
+                                <input type="text" id="empresa_laboral" name="empresa_laboral" placeholder="Ej. Logística S.A.S. / Bodega 3">
+                            </div>
+                            <div class="form-group" style="margin: 0;">
+                                <label for="arl_laboral" style="font-size: 0.85rem;">ARL Afiliada</label>
+                                <select id="arl_laboral" name="arl_laboral" class="form-control">
+                                    <option value="">Seleccione ARL...</option>
+                                    <option value="Sura">ARL Sura</option>
+                                    <option value="Positiva">Positiva ARL</option>
+                                    <option value="Bolivar">ARL Bolívar</option>
+                                    <option value="Colmena">Colmena Seguros</option>
+                                    <option value="AXA_Colpatria">AXA Colpatria</option>
+                                    <option value="Liberty">Liberty Seguros</option>
+                                    <option value="Otra">Otra / No registra</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="ubicacion">Ubicación / Dirección de Referencia</label>
+                        <input type="text" id="ubicacion" name="ubicacion" required placeholder="Ej. Calle 7 # 4-12, Madrid, Cundinamarca">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="descripcion">Descripción de la Situación <span style="color: #ef4444;">*</span></label>
+                        <textarea id="descripcion" name="descripcion" rows="3" required placeholder="Detalla brevemente lo que sucede (fuego, heridos, personas atrapadas, etc.)..."></textarea>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline close-modal">Cancelar</button>
+                        <button type="submit" class="btn btn-danger">Enviar Alerta de Emergencia</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- JS de Leaflet y Dashboard Script -->
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+        <script src="{{ url_for('static', filename='js/civil.js') }}"></script>
+        
+        <!-- Script auxiliar único para control del menú móvil y campos dinámicos laborales -->
+        <script>
+            function cerrarMenuMovil() {
+                const sidebar = document.getElementById('sidebar');
+                if (sidebar) {
+                    sidebar.classList.remove('active');
+                }
+            }
+
+            // Control dinámico para mostrar el bloque laboral si es Emergencia Médica u otro
+            document.addEventListener('DOMContentLoaded', () => {
+                const selectTipo = document.getElementById('tipo');
+                const grupoLaboral = document.getElementById('grupo-laboral');
+                const checkLaboral = document.getElementById('es_laboral');
+                const detallesLaborales = document.getElementById('detalles-laborales');
+
+                function evaluarVisibilidadLaboral() {
+                    if (selectTipo.value === 'Emergencia Médica' || selectTipo.value === 'Accidente de Tránsito') {
+                        grupoLaboral.style.display = 'block';
+                    } else {
+                        grupoLaboral.style.display = 'none';
+                        checkLaboral.checked = false;
+                        detallesLaborales.style.display = 'none';
+                    }
+                }
+
+                if (selectTipo) {
+                    selectTipo.addEventListener('change', evaluarVisibilidadLaboral);
+                    evaluarVisibilidadLaboral(); // Ejecutar al cargar por si hay valor predeterminado
+                }
+
+                if (checkLaboral) {
+                    checkLaboral.addEventListener('change', () => {
+                        detallesLaborales.style.display = checkLaboral.checked ? 'grid' : 'none';
+                    });
+                }
+            });
+        </script>
+    </body>
+</html>

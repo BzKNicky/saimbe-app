@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>SAIMBE - Dashboard Operador</title>
+        
+        <!-- Leaflet CSS -->
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+        <!-- Estilos generales y Favicon -->
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/operador.css') }}">
+        <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/Favicon.jpeg') }}">
+
+        <!-- Estilos para el Scroll de la Tabla y Filtros Rápidos -->
+        <style>
+            .table-card {
+                max-height: 480px; /* Altura máxima para mostrar ~10 filas antes de activar el scroll */
+                overflow-y: auto;
+                position: relative;
+                border-radius: 10px;
+            }
+
+            .custom-table thead th {
+                position: sticky;
+                top: 0;
+                background-color: #111827; /* Fondo oscuro acorde al panel de operador */
+                color: #ffffff;
+                z-index: 10;
+                box-shadow: 0 2px 2px rgba(0, 0, 0, 0.2);
+            }
+
+            .table-filters {
+                display: flex;
+                gap: 10px;
+                margin-bottom: 15px;
+                align-items: center;
+                flex-wrap: wrap;
+            }
+
+            .btn-outline.active-filter {
+                background-color: #2563eb !important;
+                color: white !important;
+                border-color: #2563eb !important;
+            }
+        </style>
+    </head>
+
+    <body>
+
+        <!-- Encabezado principal -->
+        <header>
+            <div class="logo-container">
+                <a href="{{ url_for('operador') }}" title="Ir al inicio del operador">
+                    <img src="{{ url_for('static', filename='images/Logo_SAIMBE.png') }}" alt="Logo SAIMBE">
+                </a>
+                <div>
+                    <h1>SAIMBE</h1>
+                    <p>Cada Segundo Cuenta - Centro de Despacho</p>
+                </div>
+            </div>
+
+            <!-- Navegación y acciones de usuario -->
+            <nav>
+                <button id="theme-toggle" aria-label="Cambiar tema de color" title="Modo Claro/Oscuro">🌙</button>
+                <span class="user-info">Usuario: <strong>{{ session.get('nombre', 'Operador') }}</strong></span>
+                <a href="{{ url_for('logout') if 'logout' in endpoints else '#' }}" class="btn btn-danger">Cerrar sesión</a>
+            </nav>
+        </header>
+
+        <!-- Contenido del Dashboard -->
+        <main class="dashboard-container">
+
+            <!-- Menú lateral completo según especificación SAIMBE -->
+            <aside class="sidebar">
+                <ul class="sidebar-menu">
+                    <li class="active"><a href="{{ url_for('operador') }}">Inicio</a></li>
+                    <li><a href="#seccion-emergencias">Gestión de Emergencias</a></li>
+                    <li><a href="#seccion-geolocalizacion">Geolocalización y Rutas</a></li>
+                    <li><a href="#seccion-recursos">Asignación de Recursos</a></li> 
+                    <li><a href="#seccion-historial">Historial y Consultas</a></li>
+                </ul>
+                <ul class="sidebar-bottom">
+                    <li><a href="#seccion-configuracion" onclick="abrirModalConfiguracion(); return false;">⚙️ Configuración</a></li>
+                </ul>
+            </aside>
+
+            <!-- Área de contenido dinámico -->
+            <div class="dashboard-content">
+
+                <!-- Mensajes Flash de Retroalimentación -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                  {% if messages %}
+                    {% for category, message in messages %}
+                      <div class="alert alert-{{ category }}" style="margin-bottom: 15px; padding: 10px 15px; border-radius: 5px; background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb;">
+                        {{ message }}
+                      </div>
+                    {% endfor %}
+                  {% endif %}
+                {% endwith %}
+
+                <!-- Panel de control (Tarjetas informativas) -->
+                <section class="main-content">
+                    <h2>Bienvenido al Dashboard del Operador</h2>
+                    <p>Bienvenido, {{ session.get('nombre', 'Operador') }}. Gestiona en tiempo real la asignación de recursos y el estado de los incidentes en la sabana de Cundinamarca.</p>
+
+                    <div class="cards-grid">
+                        <!-- Tarjeta 1: Emergencias Activas -->
+                        <a href="#seccion-emergencias" class="card">
+                            <div class="card-content">
+                                <h3>Emergencias Activas</h3>
+                                <p>Visualiza las emergencias que están en proceso de atención.</p>
+                                <p class="card-stat"><strong>{{ emergencias | selectattr('estado', 'equalto', 'En proceso') | list | length }}</strong> en proceso</p>
+                            </div>
+                            <span class="card-button">Gestionar &rarr;</span>
+                        </a>
+
+                        <!-- Tarjeta 2: Emergencias Pendientes -->
+                        <a href="#seccion-emergencias" class="card">
+                            <div class="card-content">
+                                <h3>Emergencias Pendientes</h3>
+                                <p>Reportes nuevos que requieren validación y despacho.</p>
+                                <p class="card-stat"><strong>{{ emergencias | selectattr('estado', 'equalto', 'Pendiente') | list | length }}</strong> pendientes</p>
+                            </div>
+                            <span class="card-button">Gestionar &rarr;</span>
+                        </a>
+
+                        <!-- Tarjeta 3: Recursos Disponibles -->
+                        <a href="#seccion-recursos" class="card">
+                            <div class="card-content">
+                                <h3>Recursos Disponibles</h3>
+                                <p>Consulta las unidades disponibles para desplegar.</p>
+                                <p class="card-stat"><strong>20</strong> disponibles</p>
+                            </div>
+                            <span class="card-button">Ver recursos &rarr;</span>
+                        </a>
+
+                        <!-- Tarjeta 4: Finalizadas -->
+                        <a href="#seccion-historial" class="card">
+                            <div class="card-content">
+                                <h3>Emergencias Finalizadas</h3>
+                                <p>Total de solicitudes atendidas y cerradas.</p>
+                                <p class="card-stat"><strong>{{ emergencias | selectattr('estado', 'equalto', 'Finalizada') | list | length }}</strong> resueltas</p>
+                            </div>
+                            <span class="card-button">Ver historial &rarr;</span>
+                        </a>
+                    </div>
+                </section>
+
+                <!-- Sección 1: Gestión de Emergencias -->
+                <section id="seccion-emergencias" class="recent-emergencies">
+                    <div class="section-header">
+                        <div>
+                            <h3>Gestión de Emergencias Recientes</h3>
+                            <p>Últimos reportes registrados y control de flujo de atención.</p>
+                        </div>
+                    </div>
+
+                    <!-- Barra de Filtros Rápidos para el Operador -->
+                    <div class="table-filters">
+                        <span style="font-size: 0.9rem; color: var(--text-muted, #94a3b8); font-weight: 600;"><i class="fas fa-filter"></i> Filtrar estado:</span>
+                        <button type="button" class="btn btn-sm btn-outline active-filter" onclick="filtrarTablaOperador('todos', this)" style="padding: 5px 12px; font-size: 0.85rem; border-radius: 6px;">Todos</button>
+                        <button type="button" class="btn btn-sm btn-outline" onclick="filtrarTablaOperador('Pendiente', this)" style="padding: 5px 12px; font-size: 0.85rem; border-radius: 6px;">Pendientes</button>
+                        <button type="button" class="btn btn-sm btn-outline" onclick="filtrarTablaOperador('En proceso', this)" style="padding: 5px 12px; font-size: 0.85rem; border-radius: 6px;">En Proceso</button>
+                    </div>
+
+                    <!-- Tabla de datos con Scroll Vertical -->
+                    <div class="table-card">
+                        <table class="custom-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Tipo</th>
+                                    <th>Reportado por</th>
+                                    <th>Ubicación</th>
+                                    <th>Prioridad / Gravedad</th>
+                                    <th>Recurso Asignado (Individual o Mixto)</th>
+                                    <th>Estado Actual</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for e in emergencias %}
+                                <!-- 🛑 Ocultar de la tabla principal si ya está finalizada o resuelta -->
+                                {% if 'finalizada' not in e.estado.lower() and 'resuelta' not in e.estado.lower() %}
+                                <tr data-lat="{{ e.latitud }}" 
+                                    data-lng="{{ e.longitud }}" 
+                                    data-reporter-lat="{{ e.reporter_lat }}" 
+                                    data-reporter-lng="{{ e.reporter_lng }}">
+                                    <td class="fw-bold">#{{ e.id }}</td>
+                                    <td><span class="emergency-type">{{ e.tipo }}</span></td>
+                                    <td>{{ e.reportado_por }}</td>
+                                    <td><small>{{ e.ubicacion }}</small></td>
+                                    
+                                    <!-- Formulario contenedor organizado celda por celda -->
+                                    <form action="{{ url_for('clasificar_emergencia') }}" method="POST">
+                                        <input type="hidden" name="emergencia_id" value="{{ e.id }}">
+
+                                        <!-- Columna: Prioridad / Gravedad -->
+                                        <td>
+                                            <select name="gravedad" style="padding: 4px 6px; border-radius: 4px; border: 1px solid var(--border-color); font-size: 0.8rem; background: var(--card-bg); color: var(--text-main);">
+                                                <option value="Por definir" {% if e.gravedad == 'Por definir' or not e.gravedad %}selected{% endif %}>🟡 Por definir</option>
+                                                <option value="Baja" {% if e.gravedad == 'Baja' %}selected{% endif %}>🟢 Baja</option>
+                                                <option value="Media" {% if e.gravedad == 'Media' %}selected{% endif %}>🔵 Media</option>
+                                                <option value="Alta" {% if e.gravedad == 'Alta' %}selected{% endif %}>🟠 Alta</option>
+                                                <option value="Crítica" {% if e.gravedad == 'Crítica' %}selected{% endif %}>🔴 Crítica</option>
+                                            </select>
+                                        </td>
+
+                                        <!-- Columna: Recurso Asignado -->
+                                        <td>
+                                            <select name="recurso" style="padding: 4px 6px; border-radius: 4px; border: 1px solid var(--border-color); font-size: 0.8rem; background: var(--card-bg); color: var(--text-main); max-width: 195px;">
+                                                <option value="Sin Asignar" {% if e.recurso_asignado == 'Sin Asignar' or not e.recurso_asignado %}selected{% endif %}>📦 Sin Asignar</option>
+                                                <option value="1 Ambulancia BÁSICA" {% if e.recurso_asignado == '1 Ambulancia BÁSICA' %}selected{% endif %}>🚑 Ambulancia BÁSICA</option>
+                                                <option value="1 Patrulla Policía" {% if e.recurso_asignado == '1 Patrulla Policía' %}selected{% endif %}>👮 Patrulla Policía</option>
+                                                <option value="1 Máquina Extintora Bomberos" {% if e.recurso_asignado == '1 Máquina Extintora Bomberos' %}selected{% endif %}>🚒 Máquina Bomberos</option>
+                                                <option value="Ambulancia BÁSICA + Bomberos Madrid" {% if e.recurso_asignado == 'Ambulancia BÁSICA + Bomberos Madrid' %}selected{% endif %}>🔥🚑 Ambulancia + Bomberos</option>
+                                                <option value="Patrulla Policía + Ambulancia TAB" {% if e.recurso_asignado == 'Patrulla Policía + Ambulancia TAB' %}selected{% endif %}>🚨👮 Policía + Ambulancia (Tránsito)</option>
+                                                <option value="Bomberos + Policía + Defensa Civil" {% if e.recurso_asignado == 'Bomberos + Policía + Defensa Civil' %}selected{% endif %}>⚠️ Operativo Conjunto Total</option>
+                                            </select>
+                                        </td>
+
+                                        <!-- Columna: Estado Actual -->
+                                        <td>
+                                            {% if e.estado == 'Pendiente' %}
+                                                <span class="badge badge-warning">Pendiente</span>
+                                            {% elif e.estado == 'En proceso' %}
+                                                <span class="badge badge-info">En proceso</span>
+                                            {% else %}
+                                                <span class="badge badge-success">Finalizada</span>
+                                            {% endif %}
+                                        </td>
+
+                                        <!-- Columna: Acciones -->
+                                        <td>
+                                            <div style="display: flex; gap: 4px;">
+                                                <button type="submit" class="btn btn-sm btn-primary" style="padding: 4px 8px; font-size: 0.75rem;" title="Guardar cambios">
+                                                    💾 Guardar
+                                                </button>
+
+                                                <button type="button" 
+                                                        onclick="abrirModalDetalles('{{ e.id }}', '{{ e.tipo }}', '{{ e.reportado_por }}', '{{ e.ubicacion }}', '{{ e.gravedad }}', '{{ e.recurso_asignado }}', '{{ e.estado }}', '{{ e.descripcion }}')" 
+                                                        class="btn btn-sm" 
+                                                        style="background-color: #0284c7; color: white; padding: 4px 8px; font-size: 0.75rem; border: none; border-radius: 4px; cursor: pointer;"
+                                                        title="Ver expediente y descripción completa">
+                                                    🔍 Detalle
+                                                </button>
+
+                                                <button type="button" 
+                                                        onclick="gestionarIncidente('{{ e.id }}', '{{ e.tipo }}', '{{ e.gravedad or 'Por definir' }}', '{{ e.ubicacion }}', '{{ e.descripcion_limpia }}')" 
+                                                        class="btn btn-sm" 
+                                                        style="background-color: var(--accent-color); color: white; padding: 4px 8px; font-size: 0.75rem; border: none; border-radius: 4px; cursor: pointer;"
+                                                        title="Ver análisis y sugerencias de IA">
+                                                    ⚙️ Analizar
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </form>
+                                </tr>
+                                {% endif %}
+                                {% else %}
+                                <tr>
+                                    <td colspan="8" style="text-align: center;">No hay emergencias registradas actualmente.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Sección 2: Apoyo Inteligente (IA) y Geolocalización/Rutas -->
+                <section id="seccion-geolocalizacion" class="operational-grid-section">
+                    <div class="operational-grid">
+                        
+                        <!-- Panel: Apoyo Inteligente (IA) - Asistente Consultivo -->
+                        <div class="panel-card ai-panel">
+                            <div class="panel-header">
+                                <h3>Apoyo Inteligente (IA)</h3>
+                                <span class="badge badge-info">Asistente Consultivo</span>
+                            </div>
+                            <div class="panel-body">
+                                <p class="ai-target"><strong>Estado del Sistema:</strong> Monitoreo activo de incidentes</p>
+                                <div class="ai-box">
+                                    <div class="ai-item">
+                                        <span class="ai-label">Guía Operativa:</span>
+                                        <p class="ai-val">Selecciona <strong>"⚙️ Analizar"</strong> en cualquier incidente de la tabla para consultar aquí los detalles del reporte ciudadano y las recomendaciones técnicas de la IA antes de asignar tus recursos.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Panel: Visor Geográfico y Rutas -->
+                        <div class="panel-card map-panel">
+                            <div class="panel-header">
+                                <h3>Geolocalización y Rutas</h3>
+                                <span class="badge badge-success">GPS Online</span>
+                            </div>
+                            <div class="panel-body">
+                                <div id="map-operador" style="height: 230px; border-radius: 8px; border: 1px solid var(--border-color); z-index: 1;"></div>
+                            </div>
+                        </div>
+
+                    </div>
+                </section>
+
+                <!-- Sección 3: Asignación de Recursos (Interactiva, Dinámica y Filtrable) -->
+                <section id="seccion-recursos" style="margin-top: 30px;">
+                    <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                        <div>
+                            <h3>Asignación y Control de Recursos</h3>
+                            <p>Monitoreo en tiempo real de unidades operativas en Madrid y municipios aledaños.</p>
+                        </div>
+                        <!-- 🚀 Botón para registrar nuevo recurso -->
+                        <button type="button" onclick="abrirModalCrearRecurso()" class="btn btn-sm btn-primary" style="padding: 6px 14px; font-size: 0.85rem;">
+                            ➕ Registrar Nuevo Recurso
+                        </button>
+                    </div>
+
+                    <!-- Resumen rápido por tipo de entidad -->
+                    <div class="cards-grid" style="margin-bottom: 20px;">
+                        <div class="card" style="cursor: default;">
+                            <div class="card-content">
+                                <h3>🚑 Unidades de Salud</h3>
+                                <p>Ambulancias TAB y TAB-A en guardia.</p>
+                                <p class="card-stat"><strong>- / -</strong> disponibles</p>
+                            </div>
+                        </div>
+
+                        <div class="card" style="cursor: default;">
+                            <div class="card-content">
+                                <h3>🚒 Vehículos de Bomberos</h3>
+                                <p>Máquinas extintoras y rescate.</p>
+                                <p class="card-stat"><strong>- / -</strong> disponibles</p>
+                            </div>
+                        </div>
+
+                        <div class="card" style="cursor: default;">
+                            <div class="card-content">
+                                <h3>👮 Patrullas de Policía</h3>
+                                <p>Cuadrantes y tránsito municipal.</p>
+                                <p class="card-stat"><strong>- / -</strong> disponibles</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Barra de Filtros Rápidos para Recursos (Con los 3 estados) -->
+                    <div class="table-filters" style="margin-bottom: 15px;">
+                        <span style="font-size: 0.9rem; color: var(--text-muted, #94a3b8); font-weight: 600;"><i class="fas fa-filter"></i> Filtrar estado:</span>
+                        <button type="button" class="btn btn-sm btn-outline active-filter" onclick="filtrarRecursosOperador('todos', this)" style="padding: 5px 12px; font-size: 0.85rem; border-radius: 6px;">Todos</button>
+                        <button type="button" class="btn btn-sm btn-outline" onclick="filtrarRecursosOperador('Disponible', this)" style="padding: 5px 12px; font-size: 0.85rem; border-radius: 6px;">Disponibles</button>
+                        <button type="button" class="btn btn-sm btn-outline" onclick="filtrarRecursosOperador('Servicio', this)" style="padding: 5px 12px; font-size: 0.85rem; border-radius: 6px;">En Servicio</button>
+                        <button type="button" class="btn btn-sm btn-outline" onclick="filtrarRecursosOperador('Fuera', this)" style="padding: 5px 12px; font-size: 0.85rem; border-radius: 6px;">Fuera de Servicio</button>
+                    </div>
+
+                    <!-- Tabla de Detalle de Flota (Conectada a la BD por JS) -->
+                    <div class="table-card">
+                        <table class="custom-table">
+                            <thead>
+                                <tr>
+                                    <th>Código Unidad</th>
+                                    <th>Tipo de Recurso</th>
+                                    <th>Base / Jurisdicción</th>
+                                    <th>Estado Actual</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td colspan="5" style="text-align: center;">Cargando recursos operativos desde la base de datos...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Sección 4: Historial y Consultas (Interactivo y Filtrable) -->
+                <section id="seccion-historial" style="margin-top: 30px;">
+                    <div class="section-header">
+                        <div>
+                            <h3>Historial y Consultas de Incidentes</h3>
+                            <p>Registro consolidado y auditoría de solicitudes atendidas y finalizadas.</p>
+                        </div>
+                    </div>
+
+                    <!-- Buscador rápido para historial -->
+                    <div class="table-filters" style="justify-content: space-between;">
+                        <div style="display: flex; gap: 10px; align-items: center; flex: 1; max-width: 350px;">
+                            <input type="text" id="buscador-historial" placeholder="🔍 Buscar por ID, tipo o ubicación..." onkeyup="filtrarHistorialOperador()" style="width: 100%; padding: 7px 12px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-main); font-size: 0.85rem;">
+                        </div>
+                        <span style="font-size: 0.85rem; color: var(--text-muted);">Mostrando registros históricos de la central</span>
+                    </div>
+
+                    <div class="table-card">
+                        <table class="custom-table" id="tabla-historial">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Tipo de Incidente</th>
+                                    <th>Reportado por</th>
+                                    <th>Ubicación / GPS</th>
+                                    <th>Recurso Despachado</th>
+                                    <th>Estado Final</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for e in emergencias %}
+                                {% if 'finalizada' in e.estado.lower() or 'resuelta' in e.estado.lower() %}
+                                <tr>
+                                    <td class="fw-bold">#{{ e.id }}</td>
+                                    <td>{{ e.tipo }}</td>
+                                    <td>{{ e.reportado_por }}</td>
+                                    <td><small>{{ e.ubicacion }}</small></td>
+                                    <td>{{ e.recurso_asignado }}</td>
+                                    <td><span class="badge badge-success">{{ e.estado }}</span></td>
+                                </tr>
+                                {% endif %}
+                                {% else %}
+                                <tr>
+                                    <td colspan="6" style="text-align: center;">No hay registros históricos finalizados.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+            </div>
+        </main>
+
+        <!-- VENTANA EMERGENTE (MODAL) DE EXPEDIENTE COMPLETO -->
+        <div id="modal-detalle" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.6); z-index: 1000; justify-content: center; align-items: center;">
+            <div style="background-color: var(--card-bg, #ffffff); color: var(--text-main, #333); padding: 25px; border-radius: 10px; width: 90%; max-width: 550px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); border: 1px solid var(--border-color, #ccc); position: relative;">
+                
+                <!-- Botón de Cierre (X) -->
+                <button onclick="cerrarModalDetalles()" style="position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--text-main);">✕</button>
+                
+                <h3 style="margin-top: 0; color: var(--accent-color, #2563eb); border-bottom: 2px solid var(--border-color); padding-bottom: 8px;">📋 Expediente del Incidente <span id="modal-id"></span></h3>
+                
+                <div style="margin: 15px 0; font-size: 0.95rem; line-height: 1.5;">
+                    <p><strong>Tipo de Incidente:</strong> <span id="modal-tipo"></span></p>
+                    <p><strong>Reportado por:</strong> <span id="modal-reportado"></span></p>
+                    <p><strong>Ubicación GPS / Dirección:</strong> <span id="modal-ubicacion"></span></p>
+                    <p><strong>Prioridad Actual:</strong> <span id="modal-gravedad"></span></p>
+                    <p><strong>Recurso Asignado:</strong> <span id="modal-recurso"></span></p>
+                    <p><strong>Estado del Caso:</strong> <span id="modal-estado"></span></p>
+                    
+                    <div style="margin-top: 15px; background: rgba(0,0,0,0.03); padding: 12px; border-radius: 6px; border-left: 4px solid var(--accent-color);">
+                        <strong style="display: block; margin-bottom: 5px;">Descripción Completa y Bitácora Ciudadana:</strong>
+                        <p id="modal-descripcion" style="margin: 0; white-space: pre-line; font-style: italic;"></p>
+                    </div>
+                </div>
+
+                <div style="text-align: right; margin-top: 20px;">
+                    <button onclick="cerrarModalDetalles()" class="btn btn-sm btn-primary" style="padding: 6px 16px;">Cerrar Expediente</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- VENTANA EMERGENTE (MODAL) DE GESTIÓN DE RECURSO -->
+        <div id="modal-gestionar-recurso" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.6); z-index: 1000; justify-content: center; align-items: center;">
+            <div style="background-color: var(--card-bg, #ffffff); color: var(--text-main, #333); padding: 25px; border-radius: 10px; width: 90%; max-width: 500px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); border: 1px solid var(--border-color, #ccc); position: relative;">
+                
+                <!-- Botón de Cierre (X) -->
+                <button onclick="cerrarModalGestionRecurso()" style="position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--text-main);">✕</button>
+                
+                <h3 style="margin-top: 0; color: var(--accent-color, #2563eb); border-bottom: 2px solid var(--border-color); padding-bottom: 8px;">⚙️ Gestionar Unidad: <span id="recurso-modal-titulo"></span></h3>
+                
+                <form id="form-gestionar-recurso" onsubmit="guardarGestionRecurso(event)" style="margin-top: 15px;">
+                    <input type="hidden" id="recurso-modal-id">
+                    
+                    <div style="margin-bottom: 12px;">
+                        <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 5px;">Estado Operativo Actual:</label>
+                        <select id="recurso-modal-estado" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-main); font-size: 0.9rem;">
+                            <option value="Disponible">🟢 Disponible</option>
+                            <option value="En servicio">🟡 En servicio</option>
+                            <option value="Fuera de servicio">🔴 Fuera de servicio</option>
+                            <option value="En Mantenimiento">🔧 En Mantenimiento</option>
+                        </select>
+                    </div>
+
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 5px;">Asignación o Jurisdicción / Observaciones:</label>
+                        <input type="text" id="recurso-modal-ubicacion" placeholder="Ej. Base Central Madrid / Asignado a Incidente #3" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-main); font-size: 0.9rem;">
+                    </div>
+
+                    <div style="text-align: right; display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px;">
+                        <button type="button" onclick="cerrarModalGestionRecurso()" class="btn btn-sm btn-outline" style="padding: 6px 14px;">Cancelar</button>
+                        <button type="submit" class="btn btn-sm btn-primary" style="padding: 6px 16px;">💾 Guardar Cambios</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- VENTANA EMERGENTE (MODAL) PARA REGISTRAR NUEVO RECURSO -->
+        <div id="modal-crear-recurso" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.6); z-index: 1000; justify-content: center; align-items: center;">
+            <div style="background-color: var(--card-bg, #ffffff); color: var(--text-main, #333); padding: 25px; border-radius: 10px; width: 90%; max-width: 500px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); border: 1px solid var(--border-color, #ccc); position: relative;">
+                
+                <!-- Botón de Cierre (X) -->
+                <button onclick="cerrarModalCrearRecurso()" style="position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--text-main);">✕</button>
+                
+                <h3 style="margin-top: 0; color: var(--accent-color, #2563eb); border-bottom: 2px solid var(--border-color); padding-bottom: 8px;">➕ Registrar Nueva Unidad Operativa</h3>
+                
+                <form id="form-crear-recurso" onsubmit="guardarNuevoRecursoOperador(event)" style="margin-top: 15px;">
+                    <div style="margin-bottom: 12px;">
+                        <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 5px;">Nombre del Recurso / Unidad:</label>
+                        <input type="text" id="nuevo-nombre-recurso" placeholder="Ej. Ambulancia TAB-03 o Patrulla 14" required style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-main); font-size: 0.9rem;">
+                    </div>
+
+                    <div style="margin-bottom: 12px;">
+                        <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 5px;">Tipo de Recurso:</label>
+                        <select id="nuevo-tipo-recurso" required style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-main); font-size: 0.9rem;">
+                            <option value="Ambulancia">🚑 Ambulancia</option>
+                            <option value="Policía">👮 Policía</option>
+                            <option value="Bomberos">🚒 Bomberos</option>
+                            <option value="Defensa Civil">⚠️ Defensa Civil</option>
+                        </select>
+                    </div>
+
+                    <div style="margin-bottom: 12px;">
+                        <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 5px;">Placa o Código Identificador:</label>
+                        <input type="text" id="nuevo-placa-recurso" placeholder="Ej. AMB-03 o POL-05" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-main); font-size: 0.9rem;">
+                    </div>
+
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 5px;">Base o Ubicación Actual:</label>
+                        <input type="text" id="nuevo-ubicacion-recurso" value="Base Central Madrid" placeholder="Ej. Base Central Madrid" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-main); font-size: 0.9rem;">
+                    </div>
+
+                    <div style="text-align: right; display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px;">
+                        <button type="button" onclick="cerrarModalCrearRecurso()" class="btn btn-sm btn-outline" style="padding: 6px 14px;">Cancelar</button>
+                        <button type="submit" class="btn btn-sm btn-primary" style="padding: 6px 16px;">💾 Guardar y Registrar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- VENTANA EMERGENTE (MODAL) DE CONFIGURACIÓN DE OPERADOR -->
+        <div id="modal-configuracion" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.6); z-index: 1000; justify-content: center; align-items: center;">
+            <div style="background-color: var(--card-bg, #ffffff); color: var(--text-main, #333); padding: 25px; border-radius: 10px; width: 90%; max-width: 550px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); border: 1px solid var(--border-color, #ccc); position: relative; max-height: 90vh; overflow-y: auto;">
+                
+                <!-- Botón de Cierre (X) -->
+                <button onclick="cerrarModalConfiguracion()" style="position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--text-main);">✕</button>
+                
+                <h3 style="margin-top: 0; color: var(--accent-color, #2563eb); border-bottom: 2px solid var(--border-color); padding-bottom: 8px;">⚙️ Configuración de Operador</h3>
+                
+                <form action="{{ url_for('guardar_configuracion_operador') }}" method="POST" style="margin-top: 15px;">
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; font-weight: bold; margin-bottom: 6px; font-size: 0.9rem;">Teléfono de Contacto / Radio</label>
+                        <input type="text" name="telefono" value="{{ session.get('telefono', '') }}" placeholder="Ej: 3101234567" style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-main, #fff); color: var(--text-main, #333);">
+                    </div>
+
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; font-weight: bold; margin-bottom: 6px; font-size: 0.9rem;">Notificaciones y Alertas Sonoras</label>
+                        <select name="notificaciones" style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-main, #fff); color: var(--text-main, #333);">
+                            <option value="activado">Activadas (Sonido y Escritorio)</option>
+                            <option value="silencioso">Modo Silencioso</option>
+                            <option value="desactivado">Desactivadas</option>
+                        </select>
+                    </div>
+
+                    <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 20px 0;">
+                    <p style="font-size: 0.85rem; font-weight: 600; color: var(--accent-color); margin-bottom: 12px;">🔒 Cambio de Contraseña (Opcional)</p>
+
+                    <!-- Contraseña Actual -->
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; font-weight: bold; margin-bottom: 6px; font-size: 0.85rem;">Contraseña Actual</label>
+                        <div style="position: relative;">
+                            <input type="password" id="password_actual" name="password_actual" placeholder="Ingresa tu contraseña actual" style="width: 100%; padding: 10px; padding-right: 40px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-main, #fff); color: var(--text-main, #333);">
+                            <button type="button" onclick="togglePassword('password_actual', this)" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--text-muted);" title="Ver contraseña">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Nueva Contraseña -->
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; font-weight: bold; margin-bottom: 6px; font-size: 0.85rem;">Nueva Contraseña</label>
+                        <div style="position: relative;">
+                            <input type="password" id="nuevo_password" name="nuevo_password" placeholder="Ingresa tu nueva contraseña" style="width: 100%; padding: 10px; padding-right: 40px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-main, #fff); color: var(--text-main, #333);">
+                            <button type="button" onclick="togglePassword('nuevo_password', this)" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--text-muted);" title="Ver contraseña">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Confirmar Nueva Contraseña -->
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; font-weight: bold; margin-bottom: 6px; font-size: 0.85rem;">Confirmar Nueva Contraseña</label>
+                        <div style="position: relative;">
+                            <input type="password" id="confirm_password" name="confirm_password" placeholder="Vuelve a ingresar la nueva contraseña" style="width: 100%; padding: 10px; padding-right: 40px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-main, #fff); color: var(--text-main, #333);">
+                            <button type="button" onclick="togglePassword('confirm_password', this)" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--text-muted);" title="Ver contraseña">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div style="text-align: right; display: flex; justify-content: flex-end; gap: 8px;">
+                        <button type="button" onclick="cerrarModalConfiguracion()" class="btn btn-sm btn-outline" style="padding: 6px 14px;">Cancelar</button>
+                        <button type="submit" class="btn btn-sm btn-primary" style="padding: 6px 16px;">💾 Guardar Cambios</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Pie de página -->
+        <footer class="dashboard-footer">
+            <p>SAIMBE &copy; 2026 - Corporación Universitaria Minuto de Dios UNIMINUTO - Madrid, Cundinamarca</p>
+        </footer>
+
+        <!-- Script de Filtrado para la Tabla del Operador e Historial -->
+        <script>
+            function filtrarTablaOperador(estadoDeseado, botonClickeado) {
+                const botones = document.querySelectorAll('.table-filters button');
+                botones.forEach(btn => btn.classList.remove('active-filter'));
+                if (botonClickeado) botonClickeado.classList.add('active-filter');
+
+                const filas = document.querySelectorAll('#seccion-emergencias .custom-table tbody tr');
+                
+                filas.forEach(fila => {
+                    const badgeEstado = fila.querySelector('.badge');
+                    if (!badgeEstado) return;
+
+                    const textoEstado = badgeEstado.textContent.trim();
+
+                    if (estadoDeseado === 'todos' || textoEstado.toLowerCase() === estadoDeseado.toLowerCase()) {
+                        fila.style.display = '';
+                    } else {
+                        fila.style.display = 'none';
+                    }
+                });
+            }
+
+            function filtrarHistorialOperador() {
+                const input = document.getElementById('buscador-historial').value.toLowerCase();
+                const filas = document.querySelectorAll('#tabla-historial tbody tr');
+
+                filas.forEach(fila => {
+                    const textoFila = fila.textContent.toLowerCase();
+                    if (textoFila.includes(input)) {
+                        fila.style.display = '';
+                    } else {
+                        fila.style.display = 'none';
+                    }
+                });
+            }
+        </script>
+
+        <!-- Leaflet JS & Operador JS Script -->
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+        <script src="{{ url_for('static', filename='js/operador.js') }}"></script>
+    </body>
+</html>

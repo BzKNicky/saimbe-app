@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="theme-color" content="#f3f7fb" id="theme-meta">
+        <title>SAIMBE | Panel de Respondientes</title>
+        <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/Favicon.jpeg') }}">
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/respondientes.css') }}">
+    </head>
+    <body>
+
+    <header class="topbar">
+    <a class="brand" href="{{ url_for('respondiente') if 'respondiente' in endpoints else '#' }}">
+        <img src="{{ url_for('static', filename='images/Logo_SAIMBE.png') }}" alt="Logo SAIMBE">
+        <span>
+        <strong>SAIMBE</strong>
+        <small>CADA SEGUNDO CUENTA</small>
+        </span>
+    </a>
+
+    <div class="top-actions">
+        <span class="demo-pill"><i></i> CENTRO DE RESPUESTA</span>
+        <button class="icon-btn" id="theme-toggle" type="button" title="Modo Claro/Oscuro">🌙</button>
+        
+        <!-- 🎯 Selección dinámica del icono según el rol real que manda Flask (rol_usuario) -->
+        {% set icono_rol = '🚑' %}
+        {% if 'policía' in rol_usuario|lower or 'policia' in rol_usuario|lower %}
+            {% set icono_rol = '🚔' %}
+        {% elif 'bomber' in rol_usuario|lower %}
+            {% set icono_rol = '🚒' %}
+        {% elif 'tránsito' in rol_usuario|lower or 'transito' in rol_usuario|lower %}
+            {% set icono_rol = '🚦' %}
+        {% elif 'defensa' in rol_usuario|lower %}
+            {% set icono_rol = '🦺' %}
+        {% endif %}
+
+        <div class="profile-chip">
+        <span class="avatar" id="profile-avatar">{{ icono_rol }}</span>
+
+        <span class="profile-info">
+            <b id="profile-name">{{ rol_usuario }}</b>
+            <small id="role-subtitle">{{ session.get('nombre', 'Unidad Operativa') }}</small>
+        </span>
+
+        <!-- Placa o identificador del vehículo asignado con su icono correspondiente -->
+        <div id="vehicle-badge" style="padding: 6px 12px; background: var(--bg-main, #f3f7fb); border: 1px solid var(--border-color, #ccc); border-radius: 6px; font-weight: bold; font-size: 0.85rem; color: var(--accent-color, #2563eb); display: flex; align-items: center; gap: 6px;">
+            <span>{{ icono_rol }}</span>
+            <span>{{ recurso_unidad if recurso_unidad else 'Sin Unidad' }}</span>
+        </div>
+        </div>
+        
+        <a href="{{ url_for('logout') if 'logout' in endpoints else '#' }}" class="btn btn-danger" style="margin-left: 10px; padding: 7px 12px; font-size: 10px; border-radius: 8px;">Cerrar sesión</a>
+    </div>
+    </header>
+
+    <div class="app-shell">
+
+    <aside class="sidebar">
+        <div class="side-label">CENTRO DE RESPUESTA</div>
+
+        <nav class="side-nav">
+        <a class="nav-link active" href="#inicio">
+            <span>⌂</span> Resumen
+        </a>
+        <a class="nav-link" href="#emergencias">
+            <span>🚨</span> Mis emergencias
+            <b class="nav-count" id="nav-pending">2</b>
+        </a>
+        <a class="nav-link" href="#historial">
+            <span>▤</span> Historial
+        </a>
+        <a class="nav-link" href="#protocolo">
+            <span>✚</span> Protocolo de atención
+        </a>
+        </nav>
+
+        <div class="sidebar-note">
+        <div class="shield">🛡️</div>
+        <b>Tu labor salva vidas</b>
+        <p>Mantén actualizado el estado de cada servicio en la sabana de Cundinamarca.</p>
+        </div>
+
+        <div class="side-footer">
+        SAIMBE · ALERTA 360<br>
+        <span>UNIMINUTO · Madrid, Cundinamarca</span>
+        </div>
+    </aside>
+
+    <main class="main-content" id="inicio">
+
+        <section class="welcome-row">
+        <div>
+            <span class="eyebrow">PANEL DEL RESPONDIENTE</span>
+            <h1>¡Hola, <span id="welcome-name">{{ session.get('nombre', 'Unidad') }}</span>!</h1>
+            <p>Este es tu centro de control operativo. Revisa tus servicios y mantén informado al centro de coordinación.</p>
+        </div>
+
+        <!-- Selector manual de disponibilidad y estado operativo -->
+        <div class="availability" style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="pulse"></span>
+            <select id="cambiar-estado-operativo" onchange="actualizarEstadoManualRespondiente(this.value)" style="padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border-color); font-size: 0.85rem; background: var(--card-bg); color: var(--text-main); font-weight: bold; cursor: pointer; outline: none;">
+                <option value="Disponible" {% if estado_operativo == 'Disponible' %}selected{% endif %}>🟢 Disponible</option>
+                <option value="En servicio" {% if estado_operativo == 'En servicio' %}selected{% endif %}>🟠 En servicio (Atendiendo)</option>
+                <option value="Almuerzo / Descanso" {% if estado_operativo == 'Almuerzo / Descanso' %}selected{% endif %}>☕ Almuerzo / Descanso</option>
+                <option value="Fuera de servicio" {% if estado_operativo == 'Fuera de servicio' %}selected{% endif %}>🔴 Fuera de servicio (Taller)</option>
+            </select>
+            </div>
+            <small style="color: var(--text-muted); font-size: 0.75rem;">Estado operativo actual</small>
+        </div>
+        </section>
+
+        <section class="stats-grid">
+        <article class="stat-card">
+            <div class="stat-icon blue">🚨</div>
+            <div>
+            <small>Por atender</small>
+            <strong id="stat-pending">2</strong>
+            <span>Servicios disponibles</span>
+            </div>
+        </article>
+
+        <article class="stat-card">
+            <div class="stat-icon amber">🚑</div>
+            <div>
+            <small>En proceso</small>
+            <strong id="stat-active">1</strong>
+            <span>Servicios activos</span>
+            </div>
+        </article>
+
+        <article class="stat-card">
+            <div class="stat-icon green">✓</div>
+            <div>
+            <small>Finalizados</small>
+            <strong id="stat-done">3</strong>
+            <span>Servicios finalizados</span>
+            </div>
+        </article>
+
+        <article class="stat-card">
+            <div class="stat-icon violet">◷</div>
+            <div>
+            <small>Tiempo promedio</small>
+            <strong>12 <em>min</em></strong>
+            <span>Respuesta óptima</span>
+            </div>
+        </article>
+        </section>
+
+        <section class="section-block" id="emergencias">
+        <div class="section-heading">
+            <div>
+            <span class="eyebrow">CENTRO DE NOTIFICACIONES</span>
+            <h2>Mis emergencias ({{ recurso_unidad }})</h2>
+            <p>Revisa los reportes asignados a tu unidad y actualiza el avance o abre la ruta GPS en tiempo real.</p>
+            </div>
+            <span class="live-label"><i></i> Conexión activa</span>
+        </div>
+
+        <div class="toolbar">
+            <label class="search-box">
+            <span>⌕</span>
+            <input id="search-input" type="search" placeholder="Buscar por ID, tipo o ubicación...">
+            </label>
+
+            <div class="filter-wrap">
+            <label class="sr-only" for="status-filter">Filtrar por estado</label>
+            <select id="status-filter">
+                <option value="all">Todos los estados</option>
+                <option value="Disponible">Disponibles</option>
+                <option value="Pendiente">Pendientes</option>
+                <option value="Aceptada">Aceptadas</option>
+                <option value="En camino">En camino</option>
+                <option value="En proceso">En proceso</option>
+                <option value="En atención">En atención</option>
+                <option value="Finalizada">Finalizadas</option>
+                <option value="Rechazada">Rechazadas</option>
+            </select>
+            </div>
+        </div>
+
+        <!-- Listado de emergencias filtradas estrictamente por unidad con opción de navegación GPS -->
+        <div class="emergency-list" id="emergency-list">
+            {% if emergencias %}
+            {% for e in emergencias %}
+                <div class="emergency-card" style="background: var(--card-bg); border: 1px solid var(--border-color); padding: 15px; border-radius: 8px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                <div>
+                    <span class="badge badge-warning" style="font-size: 0.75rem;">#{{ e.id }} - {{ e.tipo }}</span>
+                    <h4 style="margin: 5px 0; font-size: 1rem; color: var(--text-main);">📍 {{ e.ubicacion }}</h4>
+                    <p style="margin: 0; font-size: 0.85rem; color: var(--text-muted);">{{ e.descripcion_limpia if e.descripcion_limpia else e.descripcion }}</p>
+                    <small style="display: block; margin-top: 4px; font-weight: bold; color: var(--accent-color);">Estado: {{ e.estado }}</small>
+                </div>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    {% if e.latitud and e.longitud %}
+                    <a href="https://www.google.com/maps/search/?api=1&query={{ e.latitud }},{{ e.longitud }}" target="_blank" class="btn btn-primary btn-sm" style="padding: 6px 12px; font-size: 0.8rem; text-decoration: none; border-radius: 6px;">
+                        🗺️ Abrir en Maps / Waze
+                    </a>
+                    {% endif %}
+                </div>
+                </div>
+            {% endfor %}
+            {% else %}
+            <div style="text-align: center; padding: 30px; color: var(--text-muted);">
+                <span>📭</span>
+                <p>No hay servicios asignados actualmente a tu unidad ({{ recurso_unidad }}).</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="empty-filter hidden" id="empty-filter">
+            <span>🔎</span>
+            <b>No encontramos emergencias</b>
+            <p>Prueba con otro término o cambia el filtro de búsqueda.</p>
+        </div>
+        </section>
+
+        <section class="section-block" id="historial">
+        <div class="section-heading">
+            <div>
+            <span class="eyebrow">REGISTRO DE ACTIVIDAD</span>
+            <h2>Historial de servicios</h2>
+            <p>Servicios finalizados y atendidos por el organismo.</p>
+            </div>
+            <button class="btn btn-outline" id="export-button" type="button">
+            ⇩ Exportar historial CSV
+            </button>
+        </div>
+
+        <div class="history-table-wrap">
+            <table>
+            <thead>
+                <tr>
+                <th>Servicio</th>
+                <th>Ubicación</th>
+                <th>Tipo</th>
+                <th>Estado</th>
+                <th>Hora</th>
+                </tr>
+            </thead>
+            <tbody id="history-body"></tbody>
+            </table>
+        </div>
+        </section>
+
+        <section class="section-block" id="protocolo">
+        <div class="section-heading">
+            <div>
+            <span class="eyebrow">GUÍA RÁPIDA</span>
+            <h2>Protocolo de atención</h2>
+            <p>Pasos operativos para mantener actualizado el servicio.</p>
+            </div>
+        </div>
+
+        <div class="protocol-grid">
+            <article>
+            <span class="step-number">01</span>
+            <div>
+                <b>Recibe y revisa</b>
+                <p>Consulta el tipo de emergencia, la ubicación GPS y las observaciones del operador.</p>
+            </div>
+            </article>
+
+            <article>
+            <span class="step-number">02</span>
+            <div>
+                <b>Acepta el servicio</b>
+                <p>Confirma que tu unidad del organismo atenderá de inmediato el incidente.</p>
+            </div>
+            </article>
+
+            <article>
+            <span class="step-number">03</span>
+            <div>
+                <b>Actualiza tu avance</b>
+                <p>Marca en la interfaz cuando estés en camino y cuando inicie la atención en sitio.</p>
+            </div>
+            </article>
+
+            <article>
+            <span class="step-number">04</span>
+            <div>
+                <b>Finaliza el servicio</b>
+                <p>Registra el cierre operativo para que quede consolidado en el historial.</p>
+            </div>
+            </article>
+        </div>
+
+        <p class="demo-disclaimer">
+            SAIMBE Operativo · Sistema de Apoyo Inteligente para el Manejo y Búsqueda de Emergencias.
+        </p>
+        </section>
+
+        <footer class="page-footer">
+        <span>SAIMBE © 2026 - Corporación Universitaria Minuto de Dios UNIMINUTO - Madrid, Cundinamarca</span>
+        <b>Cada segundo cuenta.</b>
+        </footer>
+
+    </main>
+    </div>
+
+    <dialog class="detail-dialog" id="detail-dialog">
+    <div class="dialog-head">
+        <div>
+        <span class="eyebrow">DETALLE DEL SERVICIO</span>
+        <h2 id="dialog-title">Emergencia</h2>
+        </div>
+        <button class="icon-btn close-dialog" type="button">✕</button>
+    </div>
+
+    <div id="dialog-content"></div>
+
+    <div class="dialog-actions">
+        <button class="btn btn-outline close-dialog" type="button">Cerrar</button>
+        <button class="btn btn-primary" id="dialog-action" type="button">
+        Actualizar servicio
+        </button>
+    </div>
+    </dialog>
+
+    <div class="toast-region" id="toast-region"></div>
+
+    <!-- Función AJAX para actualizar el estado operativo manual de la unidad -->
+    <script>
+        async function actualizarEstadoManualRespondiente(nuevoEstado) {
+            try {
+                const response = await fetch('/api/respondiente/actualizar_estado', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ estado: nuevoEstado })
+                });
+                const resultado = await response.json();
+
+                if (resultado.success) {
+                    console.log(`Estado operativo actualizado a: ${nuevoEstado}`);
+                } else {
+                    console.warn('⚠️ ' + resultado.message);
+                }
+            } catch (error) {
+                console.error('Error al actualizar estado operativo:', error);
+            }
+        }
+    </script>
+
+    <!-- Conexión de datos en vivo desde Flask -->
+    <script>
+        window.SAIMBE_EMERGENCIAS_INICIALES = {{ emergencias | tojson | safe }};
+    </script>
+        <script src="{{ url_for('static', filename='js/respondientes.js') }}"></script>
+    </body>
+</html>

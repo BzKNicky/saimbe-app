@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#07111f">
+
+    <title>SAIMBE | Sistema de Apoyo Inteligente</title>
+    <meta name="description" content="SAIMBE - Plataforma de apoyo para la gestión y coordinación de emergencias en Madrid, Cundinamarca.">
+
+    <!-- Fuentes: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <!-- Estilos generales y Favicon -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="icon" type="image/jpeg" href="{{ url_for('static', filename='images/Favicon.jpeg') }}">
+</head>
+
+<body>
+
+    <!-- ENCABEZADO Y NAVEGACIÓN PRINCIPAL -->
+    <header class="site-header">
+        <a href="#inicio" class="brand" aria-label="SAIMBE, ir al inicio">
+            <img src="{{ url_for('static', filename='images/Logo_SAIMBE.png') }}" alt="Logo SAIMBE">
+            <div class="brand-copy">
+                <strong class="brand-name">SAIMBE</strong>
+                <span class="brand-slogan">Cada segundo cuenta</span>
+            </div>
+        </a>
+
+        <!-- Controles a la derecha en celular: Sol/Luna y Hamburguesa -->
+        <div class="header-mobile-controls">
+            <button
+                type="button"
+                id="theme-toggle"
+                class="theme-toggle"
+                aria-label="Cambiar tema"
+                title="Cambiar tema">
+                ☀️
+            </button>
+
+            <button
+                type="button"
+                id="menu-toggle"
+                class="menu-toggle"
+                aria-label="Abrir menú de navegación">
+                ☰
+            </button>
+        </div>
+
+        <!-- Menú de Navegación -->
+        <nav class="header-actions" id="nav-menu" aria-label="Navegación principal">
+            <a href="#inicio" class="nav-link">Inicio</a>
+            <a href="#acerca-de" class="nav-link">Acerca de</a>
+            <a href="#funcionalidades" class="nav-link">Funcionalidades</a>
+            <a href="#contacto" class="nav-link">Contacto</a>
+
+            <a href="{{ url_for('login') }}" class="nav-link nav-highlight">
+                Iniciar sesión
+            </a>
+        </nav>
+    </header>
+
+    <main>
+
+        <!-- SECCIÓN PRINCIPAL (HERO) -->
+        <section class="hero" id="inicio">
+
+            <div class="hero-content">
+                <div class="status-pill">
+                    Plataforma de gestión de emergencias
+                </div>
+
+                <p class="eyebrow">TECNOLOGÍA AL SERVICIO DE LA VIDA</p>
+
+                <h1>
+                    Bienvenido a
+                    <span>SAIMBE.</span>
+                </h1>
+
+                <h2>
+                    Sistema de Apoyo Inteligente para el Manejo y Búsqueda de Emergencias
+                </h2>
+
+                <p class="hero-quote">"Cada segundo cuenta"</p>
+
+                <p class="hero-description">
+                    Una plataforma diseñada para organizar la información de emergencias, facilitar su seguimiento y apoyar la coordinación entre usuarios y centros de atención en tiempo real.
+                </p>
+
+                <div class="main-actions">
+                    <a href="{{ url_for('login') }}" class="action-button primary">
+                        Iniciar sesión <span aria-hidden="true">→</span>
+                    </a>
+
+                    <a href="{{ url_for('registro') }}" class="action-button secondary">
+                        Crear una cuenta <span aria-hidden="true">＋</span>
+                    </a>
+                </div>
+
+                <div class="hero-note">
+                    Información organizada para una mejor respuesta operativa.
+                </div>
+            </div>
+
+            <!-- PANEL VISUAL INFORMATIVO -->
+            <div class="hero-visual">
+                <div class="visual-card">
+
+                    <div class="visual-card-header">
+                        <div>
+                            <span>Centro de coordinación</span>
+                            <h3>Panel de atención</h3>
+                        </div>
+
+                        <span>SAIMBE</span>
+                    </div>
+
+                    <div class="visual-emblem" aria-hidden="true">
+                        <div class="emblem-ring"></div>
+                        <div class="emblem-ring"></div>
+                        <div class="emblem-ring"></div>
+
+                        <div class="emblem-cross">✚</div>
+
+                        <span class="emblem-point"></span>
+                        <span class="emblem-point"></span>
+                        <span class="emblem-point"></span>
+                    </div>
+
+                    <div class="visual-message">
+                        <span class="visual-message-icon" aria-hidden="true">⌖</span>
+                        <div>
+                            <strong>Información centralizada</strong>
+                            <p>Consulta y seguimiento de reportes registrados.</p>
+                        </div>
+                    </div>
+
+                    <div class="visual-message">
+                        <span class="visual-message-icon" aria-hidden="true">✚</span>
+                        <div>
+                            <strong>Coordinación operativa</strong>
+                            <p>Apoyo a la organización de la atención ante incidentes.</p>
+                        </div>
+                    </div>
+
+                    <p class="visual-disclaimer">
+                        Ilustración conceptual de la plataforma SAIMBE.
+                    </p>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- SECCIÓN: ACERCA DE -->
+        <section class="info-section content-section" id="acerca-de">
+            <div class="section-heading">
+                <span>CONOCE NUESTRO PROYECTO</span>
+                <h2>¿Qué es SAIMBE?</h2>
+                <p>
+                    Una iniciativa tecnológica orientada a mejorar la organización y la toma de decisiones durante situaciones de emergencia.
+                </p>
+            </div>
+
+            <div class="about-grid">
+                <article class="about-card">
+                    <span aria-hidden="true">◎</span>
+                    <h3>Información centralizada</h3>
+                    <p>
+                        Organiza los datos de los reportes para facilitar su consulta, monitoreo y seguimiento.
+                    </p>
+                </article>
+
+                <article class="about-card">
+                    <span aria-hidden="true">⌖</span>
+                    <h3>Ubicación del incidente</h3>
+                    <p>
+                        Permite trabajar con información de localización precisa y mapas interactivos en tiempo real.
+                    </p>
+                </article>
+
+                <article class="about-card">
+                    <span aria-hidden="true">✚</span>
+                    <h3>Apoyo a la coordinación</h3>
+                    <p>
+                        Facilita la articulación de información entre ciudadanos, operadores y centros de socorro.
+                    </p>
+                </article>
+            </div>
+        </section>
+
+        <!-- SECCIÓN: FUNCIONALIDADES -->
+        <section class="features-section content-section" id="funcionalidades">
+            <div class="section-heading">
+                <span>CAPACIDADES DE LA PLATAFORMA</span>
+                <h2>Funcionalidades principales</h2>
+                <p>
+                    Herramientas enfocadas en el registro, la geolocalización y el seguimiento de incidentes.
+                </p>
+            </div>
+
+            <div class="features-grid">
+                <article class="feature-card">
+                    <span>01</span>
+                    <h3>Registro de emergencias</h3>
+                    <p>
+                        Captura rápida de datos e incidentes categorizados por su nivel de gravedad.
+                    </p>
+                </article>
+
+                <article class="feature-card">
+                    <span>02</span>
+                    <h3>Información de ubicación</h3>
+                    <p>
+                        Consulta los datos de geolocalización GPS capturados en cada reporte.
+                    </p>
+                </article>
+
+                <article class="feature-card">
+                    <span>03</span>
+                    <h3>Seguimiento operativo</h3>
+                    <p>
+                        Monitorea el ciclo de vida de los incidentes (Pendiente, En proceso, Finalizada).
+                    </p>
+                </article>
+
+                <article class="feature-card">
+                    <span>04</span>
+                    <h3>Asignación de centros</h3>
+                    <p>
+                        Visualiza y coordina con los centros de atención y socorro cercanos disponibles.
+                    </p>
+                </article>
+            </div>
+        </section>
+
+        <!-- SECCIÓN: CONTACTO -->
+        <section class="contact-section content-section" id="contacto">
+            <div class="section-heading">
+                <span>ESTAMOS PARA ESCUCHARTE</span>
+                <h2>Contacto del proyecto</h2>
+                <p>Comunícate con el equipo de desarrollo de SAIMBE:</p>
+            </div>
+
+            <div class="contact-grid">
+                <article class="contact-card">
+                    <h3>✉ Correos institucionales</h3>
+                    <ul>
+                        <li>
+                            <a href="mailto:nick.calderon@uniminuto.edu.co">
+                                nick.calderon@uniminuto.edu.co
+                            </a>
+                        </li>
+                        <li>
+                            <a href="mailto:sebastian.faciolince@uniminuto.edu.co">
+                                sebastian.faciolince@uniminuto.edu.co
+                            </a>
+                        </li>
+                        <li>
+                            <a href="mailto:santiago.gaitan-c@uniminuto.edu.co">
+                                santiago.gaitan-c@uniminuto.edu.co
+                            </a>
+                        </li>
+                    </ul>
+                </article>
+
+                <article class="contact-card">
+                    <h3>☎ Teléfonos de contacto</h3>
+                    <ul>
+                        <li><a href="tel:+573134475601">+57 313 447 5601</a></li>
+                        <li><a href="tel:+573017901933">+57 301 790 1933</a></li>
+                        <li><a href="tel:+573197760784">+57 319 776 0784</a></li>
+                    </ul>
+                </article>
+
+                <article class="contact-card">
+                    <h3>⌖ Ubicación del proyecto</h3>
+                    <p>
+                        Corporación Universitaria Minuto de Dios (UNIMINUTO).
+                    </p>
+                    <p>Carrera 5 #2-160, Madrid, Cundinamarca.</p>
+                </article>
+            </div>
+        </section>
+
+        <!-- INVITACIÓN FINAL -->
+        <section class="closing-section">
+            <p class="eyebrow">SAIMBE · CADA SEGUNDO CUENTA</p>
+            <h2>Conoce nuestra plataforma</h2>
+            <p>
+                Ingresa a tu cuenta o crea un perfil para continuar.
+            </p>
+
+            <div class="main-actions">
+                <a href="{{ url_for('login') }}" class="action-button primary">
+                    Iniciar sesión <span aria-hidden="true">→</span>
+                </a>
+
+                <a href="{{ url_for('registro') }}" class="action-button secondary">
+                    Registrarse <span aria-hidden="true">＋</span>
+                </a>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- PIE DE PÁGINA -->
+    <footer class="site-footer">
+        <p>SAIMBE © 2026</p>
+        <p>UNIMINUTO · Madrid, Cundinamarca</p>
+        <p>Proyecto académico de coordinación de emergencias</p>
+    </footer>
+
+    <!-- SCRIPTS -->
+    <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+
+</body>
+</html>

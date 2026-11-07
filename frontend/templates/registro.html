@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#081426">
+
+    <title>SAIMBE | Crear cuenta</title>
+
+    <!-- Fuentes: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Estilos de Registro y Favicon -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/registro.css') }}?v=2.0">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/Favicon.jpeg') }}">
+</head>
+
+<body>
+
+    <div class="ambient ambient-one"></div>
+    <div class="ambient ambient-two"></div>
+
+    <!-- ENCABEZADO Y NAVEGACIÓN -->
+    <header class="site-header">
+
+        <a href="{{ url_for('inicio') }}" class="brand" aria-label="Volver al inicio de SAIMBE">
+            <img src="{{ url_for('static', filename='images/Logo_SAIMBE.png') }}" alt="Logo SAIMBE">
+            <div class="brand-copy">
+                <span class="brand-name">SAIMBE</span>
+                <span class="brand-slogan">Cada segundo cuenta</span>
+            </div>
+        </a>
+
+        <!-- Controles exclusivos para móvil (Sol/Luna + Menú) -->
+        <div class="header-mobile-controls">
+            <button type="button" id="theme-toggle" class="theme-toggle" aria-label="Cambiar tema" title="Cambiar tema">
+                ☀️
+            </button>
+
+            <button type="button" id="menu-toggle" class="menu-toggle" aria-label="Abrir menú de navegación">
+                ☰
+            </button>
+        </div>
+
+        <nav class="header-actions" id="nav-menu" aria-label="Navegación principal">
+            <a href="{{ url_for('inicio') }}" class="nav-link">
+                Inicio
+            </a>
+
+            <a href="{{ url_for('login') }}" class="nav-link nav-highlight">
+                Iniciar sesión
+            </a>
+        </nav>
+
+    </header>
+
+    <!-- ÁREA PRINCIPAL -->
+    <main class="register-page">
+
+        <!-- PANEL INFORMATIVO IZQUIERDO -->
+        <section class="register-intro">
+
+            <div class="status-pill">
+                <span class="status-dot"></span>
+                PLATAFORMA DE ATENCIÓN A EMERGENCIAS
+            </div>
+
+            <p class="eyebrow">ÚNETE A SAIMBE</p>
+
+            <h1>
+                Tu registro.
+                <span>Una respuesta más rápida.</span>
+            </h1>
+
+            <p class="welcome-description">
+                Crea tu cuenta para acceder a la plataforma de coordinación y consulta de información relacionada con emergencias.
+            </p>
+
+            <div class="feature-list">
+
+                <div class="feature-item">
+                    <span class="feature-icon" aria-hidden="true">⌖</span>
+                    <div>
+                        <strong>Información organizada</strong>
+                        <p>Facilita el acceso a los datos registrados en la plataforma.</p>
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <span class="feature-icon" aria-hidden="true">✚</span>
+                    <div>
+                        <strong>Coordinación de emergencias</strong>
+                        <p>Conecta los reportes con el sistema de atención.</p>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="system-caption">
+                <span class="system-caption-line"></span>
+                <span>SAIMBE · RESPUESTA Y COORDINACIÓN</span>
+            </div>
+
+        </section>
+
+        <!-- TARJETA DE REGISTRO -->
+        <section class="register-card">
+
+            <div class="card-topline"></div>
+
+            <div class="register-card-content">
+
+                <div class="login-symbol" aria-hidden="true">＋</div>
+
+                <p class="eyebrow">CREA TU PERFIL</p>
+
+                <h2>Crear una cuenta</h2>
+
+                <p class="register-subtitle">
+                    Completa tus datos para registrarte en SAIMBE.
+                </p>
+
+                <!-- Muestra de Mensajes Flash de Flask -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                  {% if messages %}
+                    {% for category, message in messages %}
+                      <div class="alert alert-{{ category if category != 'error' else 'danger' }}" role="alert">
+                          <span aria-hidden="true">🚨</span>
+                          <span>{{ message }}</span>
+                      </div>
+                    {% endfor %}
+                  {% endif %}
+                {% endwith %}
+
+                {% if error %}
+                    <div class="alert alert-danger" role="alert">
+                        <span aria-hidden="true">⚠️</span>
+                        <span>{{ error }}</span>
+                    </div>
+                {% endif %}
+
+                <form method="POST" action="{{ url_for('registro') }}" class="register-form" id="register-form">
+
+                    <div class="form-row">
+
+                        <div class="form-group">
+                            <label for="nombre">Nombre</label>
+
+                            <div class="input-wrapper">
+                                <span class="input-icon" aria-hidden="true">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                                </span>
+
+                                <input type="text"
+                                       id="nombre"
+                                       name="nombre"
+                                       placeholder="Ej. Juan"
+                                       required
+                                       autocomplete="given-name">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="apellido">Apellido</label>
+
+                            <div class="input-wrapper">
+                                <span class="input-icon" aria-hidden="true">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                                </span>
+
+                                <input type="text"
+                                       id="apellido"
+                                       name="apellido"
+                                       placeholder="Ej. Pérez"
+                                       required
+                                       autocomplete="family-name">
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <div class="form-group">
+                        <label for="correo">Correo electrónico</label>
+
+                        <div class="input-wrapper">
+                            <span class="input-icon" aria-hidden="true">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                            </span>
+
+                            <input type="email"
+                                   id="correo"
+                                   name="correo"
+                                   placeholder="usuario@correo.com"
+                                   required
+                                   autocomplete="email">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+
+                        <div class="form-group">
+                            <label for="password">Contraseña</label>
+
+                            <div class="input-wrapper password-wrapper">
+                                <span class="input-icon" aria-hidden="true">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                                </span>
+
+                                <input type="password"
+                                       id="password"
+                                       name="password"
+                                       placeholder="Mínimo 8 caracteres"
+                                       required
+                                       minlength="8"
+                                       autocomplete="new-password">
+
+                                <button type="button"
+                                        class="password-toggle"
+                                        data-target="password"
+                                        aria-label="Mostrar contraseña"
+                                        aria-pressed="false">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="confirm_password">Confirmar contraseña</label>
+
+                            <div class="input-wrapper password-wrapper">
+                                <span class="input-icon" aria-hidden="true">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                                </span>
+
+                                <input type="password"
+                                       id="confirm_password"
+                                       name="confirm_password"
+                                       placeholder="Repite la contraseña"
+                                       required
+                                       minlength="8"
+                                       autocomplete="new-password">
+
+                                <button type="button"
+                                        class="password-toggle"
+                                        data-target="confirm_password"
+                                        aria-label="Mostrar confirmación de contraseña"
+                                        aria-pressed="false">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                                </button>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <p class="form-hint">
+                        Utiliza una contraseña de al menos 8 caracteres.
+                    </p>
+
+                    <p id="password-error" class="password-error" role="alert" hidden>
+                        Las contraseñas no coinciden.
+                    </p>
+
+                    <button type="submit" class="submit-button">
+                        <span>Crear mi cuenta</span>
+                        <span class="submit-arrow" aria-hidden="true">→</span>
+                    </button>
+
+                </form>
+
+                <div class="register-footer">
+                    <p>
+                        ¿Ya tienes una cuenta?
+                        <a href="{{ url_for('login') }}">Inicia sesión aquí</a>
+                    </p>
+                </div>
+
+                <div class="privacy-note">
+                    Tus datos se utilizarán exclusivamente para la gestión de solicitudes en la plataforma.
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- PIE DE PÁGINA -->
+    <footer class="site-footer">
+        <span>SAIMBE © 2026</span>
+        <span>UNIMINUTO · Madrid, Cundinamarca</span>
+        <span>Plataforma de coordinación de emergencias</span>
+    </footer>
+
+    <!-- SCRIPTS EXTERNOS -->
+    <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+
+</body>
+</html>

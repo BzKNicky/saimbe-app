@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#081426">
+
+    <title>SAIMBE | Centro de Emergencias</title>
+
+    <!-- Fuentes: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Estilos de Login y Favicon -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}?v=2.3">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/Favicon.jpeg') }}">
+</head>
+
+<body>
+
+    <div class="ambient ambient-one"></div>
+    <div class="ambient ambient-two"></div>
+
+    <!-- ENCABEZADO Y NAVEGACIÓN UNIFICADO -->
+    <header class="site-header">
+
+        <a href="{{ url_for('inicio') }}" class="brand" aria-label="Volver al inicio de SAIMBE">
+            <img src="{{ url_for('static', filename='images/Logo_SAIMBE.png') }}" alt="Logo SAIMBE">
+            <div class="brand-copy">
+                <span class="brand-name">SAIMBE</span>
+                <span class="brand-slogan">Cada segundo cuenta</span>
+            </div>
+        </a>
+
+        <!-- Controles exclusivos para móvil (Sol/Luna + Menú) -->
+        <div class="header-mobile-controls">
+            <button type="button" id="theme-toggle" class="theme-toggle" aria-label="Cambiar tema" title="Cambiar tema">
+                ☀️
+            </button>
+
+            <button type="button" id="menu-toggle" class="menu-toggle" aria-label="Abrir menú de navegación">
+                ☰
+            </button>
+        </div>
+
+        <nav class="header-actions" id="nav-menu" aria-label="Navegación principal">
+            <a href="{{ url_for('inicio') }}" class="nav-link">
+                Inicio
+            </a>
+
+            <a href="{{ url_for('registro') }}" class="nav-link nav-highlight">
+                Crear cuenta
+            </a>
+        </nav>
+
+    </header>
+
+    <!-- ÁREA PRINCIPAL -->
+    <main class="login-page">
+
+        <!-- PANEL DE BIENVENIDA IZQUIERDO -->
+        <section class="welcome-panel">
+
+            <div class="status-pill">
+                <span class="status-dot"></span>
+                SISTEMA DE ATENCIÓN A EMERGENCIAS
+            </div>
+
+            <p class="eyebrow">CENTRO DE CONTROL</p>
+
+            <h1>
+                Cada segundo
+                <span>cuenta.</span>
+            </h1>
+
+            <p class="welcome-description">
+                Una plataforma para conectar personas, operadores y centros de atención ante situaciones de emergencia.
+            </p>
+
+            <div class="feature-list">
+
+                <div class="feature-item">
+                    <span class="feature-icon" aria-hidden="true">⌖</span>
+                    <div>
+                        <strong>Ubicación del incidente</strong>
+                        <p>Consulta la información registrada de cada emergencia.</p>
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <span class="feature-icon" aria-hidden="true">✚</span>
+                    <div>
+                        <strong>Atención coordinada</strong>
+                        <p>Organiza los reportes y su asignación a centros médicos.</p>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="system-caption">
+                <span class="system-caption-line"></span>
+                <span>SAIMBE · RESPUESTA Y COORDINACIÓN</span>
+            </div>
+
+        </section>
+
+        <!-- TARJETA DE LOGIN -->
+        <section class="login-card">
+
+            <div class="card-topline"></div>
+
+            <div class="login-card-content">
+
+                <div class="login-symbol" aria-hidden="true">↗</div>
+
+                <p class="eyebrow">BIENVENIDO DE NUEVO</p>
+
+                <h2>Iniciar sesión</h2>
+
+                <p class="login-subtitle">
+                    Ingresa tus credenciales para continuar.
+                </p>
+
+                <!-- Muestra de Mensajes Flash de Flask -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                  {% if messages %}
+                    {% for category, message in messages %}
+                      <div class="alert alert-{{ category if category != 'error' else 'danger' }}" role="alert">
+                          <span aria-hidden="true">🚨</span>
+                          <span>{{ message }}</span>
+                      </div>
+                    {% endfor %}
+                  {% endif %}
+                {% endwith %}
+
+                {% if error %}
+                    <div class="alert alert-danger" role="alert">
+                        <span aria-hidden="true">⚠</span>
+                        <span>Correo o contraseña incorrectos.</span>
+                    </div>
+                {% endif %}
+
+                <form method="POST" action="{{ url_for('login') }}" class="login-form">
+
+                    <div class="form-group">
+                        <label for="username">Correo electrónico</label>
+
+                        <div class="input-wrapper">
+                            <span class="input-icon" aria-hidden="true">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                            </span>
+
+                            <input type="email"
+                                   id="username"
+                                   name="username"
+                                   placeholder="ejemplo@correo.com"
+                                   required
+                                   autocomplete="email">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password">Contraseña</label>
+
+                        <div class="input-wrapper">
+                            <span class="input-icon" aria-hidden="true">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                            </span>
+
+                            <input type="password"
+                                   id="password"
+                                   name="password"
+                                   placeholder="Ingresa tu contraseña"
+                                   required
+                                   autocomplete="current-password">
+
+                            <button type="button"
+                                    id="toggle-password"
+                                    class="password-toggle"
+                                    data-target="password"
+                                    aria-label="Mostrar u ocultar contraseña"
+                                    aria-pressed="false">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="form-options">
+                        <span class="secure-note">
+                            <span aria-hidden="true">🔒</span>
+                            Acceso seguro a tu cuenta
+                        </span>
+                    </div>
+
+                    <button type="submit" class="submit-button">
+                        <span>Ingresar a SAIMBE</span>
+                        <span class="submit-arrow" aria-hidden="true">→</span>
+                    </button>
+
+                </form>
+
+                <div class="login-footer">
+                    <p>
+                        ¿Todavía no tienes cuenta?
+                        <a href="{{ url_for('registro') }}">Regístrate aquí</a>
+                    </p>
+                </div>
+
+                <div class="privacy-note">
+                    Utiliza tu correo institucional o registrado para acceder.
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- PIE DE PÁGINA -->
+    <footer class="site-footer">
+        <span>SAIMBE © 2026</span>
+        <span>UNIMINUTO · Madrid, Cundinamarca</span>
+        <span>Plataforma de coordinación de emergencias</span>
+    </footer>
+
+    <!-- SCRIPTS EXTERNOS -->
+    <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+
+</body>
+</html>
